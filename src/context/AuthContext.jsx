@@ -5,6 +5,7 @@ const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState(null); // Add user state to store role and other data
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -12,14 +13,16 @@ export const AuthProvider = ({ children }) => {
       const token = localStorage.getItem('token');
       if (token) {
         try {
-          await axios.get('http://localhost:5000/api/auth/validate-token', {
+          const response = await axios.get('http://localhost:5000/api/auth/validate-token', {
             headers: { Authorization: `Bearer ${token}` },
           });
+          setUser(response.data.user || null); // Assume backend returns user data
           setIsAuthenticated(true);
         } catch (err) {
           console.error('Token validation failed:', err.response?.data || err.message);
           localStorage.removeItem('token');
           setIsAuthenticated(false);
+          setUser(null);
         }
       }
       setIsLoading(false);
@@ -36,6 +39,7 @@ export const AuthProvider = ({ children }) => {
       });
       const { token, user } = response.data;
       localStorage.setItem('token', token);
+      setUser(user); // Store user object (e.g., { role, ... })
       setIsAuthenticated(true);
       return user;
     } catch (err) {
@@ -47,6 +51,7 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     localStorage.removeItem('token');
     setIsAuthenticated(false);
+    setUser(null); // Clear user on logout
   };
 
   if (isLoading) {
@@ -54,7 +59,7 @@ export const AuthProvider = ({ children }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ login, logout, isAuthenticated }}>
+    <AuthContext.Provider value={{ login, logout, isAuthenticated, user }}> {/* Add user to context value */}
       {children}
     </AuthContext.Provider>
   );

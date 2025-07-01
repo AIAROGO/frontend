@@ -13,7 +13,7 @@ const RevenueChart = () => {
     datasets: [
       {
         label: 'Revenue ($)',
-        data: [120000, 150000, 130000, 170000, 160000, 180000],
+        data: [0, 0, 0, 0, 0, 0],
         borderColor: 'rgb(75, 192, 192)',
         backgroundColor: 'rgba(75, 192, 192, 0.2)',
         tension: 0.1,

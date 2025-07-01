@@ -5,7 +5,7 @@ const StatsCard = ({ icon, title, value, change, changeText, iconBgColor, iconCo
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <div className={`inline-flex rounded-full ${iconBgColor} ${iconColor} p-3`}>
-        <i className={`fas fa-${icon} text-xl`}></i>
+        {icon} {/* Render React Node icon */}
       </div>
       <h3 className="text-lg font-semibold mt-2">{title}</h3>
       <p className="text-2xl font-bold">{value}</p>
@@ -19,13 +19,13 @@ const StatsCard = ({ icon, title, value, change, changeText, iconBgColor, iconCo
 };
 
 StatsCard.propTypes = {
-  icon: PropTypes.string.isRequired,
+  icon: PropTypes.node.isRequired, // Accept React Node (JSX) instead of string
   title: PropTypes.string.isRequired,
-  value: PropTypes.string.isRequired,
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired, // Accept string or number
   change: PropTypes.string,
   changeText: PropTypes.string,
   iconBgColor: PropTypes.string.isRequired,
-  iconColor: PropTypes.string.isRequired
+  iconColor: PropTypes.string.isRequired,
 };
 
 export default StatsCard;

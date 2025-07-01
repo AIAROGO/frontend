@@ -138,7 +138,7 @@ const Appointments = () => {
           </form>
         </div>
         <div className="card p-6 mb-6 bg-white rounded-lg shadow-md">
-          <h3 className="text-lg font-medium mb-4">Upcoming Appointments (Inline Table)</h3>
+          <h3 className="text-lg font-medium mb-4">Upcoming Appointments </h3>
           {appointments.length === 0 ? (
             <p className="text-blue-500">No appointments scheduled.</p>
           ) : (
@@ -169,10 +169,7 @@ const Appointments = () => {
             </div>
           )}
         </div>
-        <div className="card p-6 mb-6 bg-white rounded-lg shadow-md">
-          <h3 className="text-lg font-medium mb-4">Upcoming Appointments (Component)</h3>
-          <AppointmentList appointments={appointments} />
-        </div>
+      
       </div>
     </main>
   );

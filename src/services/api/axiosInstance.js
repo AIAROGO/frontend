@@ -1,8 +1,19 @@
+// src/services/api/axiosInstance.js
 import axios from 'axios';
 
-const instance = axios.create({
-  baseURL: 'http://localhost:5000/api', // Update with your backend URL
-  timeout: 10000,
+const axiosInstance = axios.create({
+  baseURL: 'http://localhost:5000/api', // Ensure this matches your backend
 });
 
-export default instance;
+axiosInstance.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token'); // Use token from localStorage
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+export default axiosInstance;

@@ -1,141 +1,284 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from '../context/ThemeContext';
-import PatientFlowChart from '../components/dashboard/PatientFlowChart'; // Default import
-import BedOccupancyChart from '../components/dashboard/BedOccupancyChart'; // Default import
-import RevenueChart from '../components/dashboard/RevenueChart'; // Default import
-import DepartmentOccupancyChart from '../components/dashboard/DepartmentOccupancyChart'; // Default import
-import StatsCard from '../components/dashboard/StatsCard'; // Default import
+import { useAuth } from '../context/AuthContext';
+import axiosInstance from '../services/api/axiosInstance';
+import PatientFlowChart from '../components/dashboard/PatientFlowChart';
+import BedOccupancyChart from '../components/dashboard/BedOccupancyChart';
+import RevenueChart from '../components/dashboard/RevenueChart';
+import DepartmentOccupancyChart from '../components/dashboard/DepartmentOccupancyChart';
+import ReportGenerator from '../components/dashboard/ReportGenerator';
+import CommunicationPanel from '../components/dashboard/CommunicationPanel';
 
 const Dashboard = () => {
   const { darkMode, sidebarOpen } = useTheme();
+  const { user, isAuthenticated } = useAuth();
 
-  const stats = [
-    { icon: 'user-injured', title: 'Total Patients', value: '1,284', change: '12%', changeText: 'from last month', iconBgColor: 'bg-blue-100', iconColor: 'text-blue-600' },
-    { icon: 'procedures', title: 'Available Beds', value: '48/220', change: '8%', changeText: 'from last week', iconBgColor: 'bg-green-100', iconColor: 'text-green-600' },
-    { icon: 'calendar-check', title: 'Appointments', value: '42', change: '5%', changeText: 'from yesterday', iconBgColor: 'bg-purple-100', iconColor: 'text-purple-600' },
-    { icon: 'user-md', title: 'Staff On Duty', value: '86', changeText: '24 doctors, 62 nurses', iconBgColor: 'bg-yellow-100', iconColor: 'text-yellow-600' },
-  ];
+  const [stats, setStats] = useState({
+    totalPatients: 0,
+    availableBeds: { total: 50, occupied: 0 },
+    appointments: 0,
+    staffOnDuty: { doctors: 5, nurses: 10 },
+  });
 
-  const patients = [
-    { name: 'John Smith', id: 'P-20250616-001', age: '45 years, Male', department: 'Cardiology', doctor: 'Dr. Michael Chen', status: 'Active', img: 'profile.jpg' },
-  ];
+  const [patients, setPatients] = useState([]);
+  const [appointments, setAppointments] = useState([]);
+  const [inventory, setInventory] = useState([]);
+  const [messages, setMessages] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const appointments = [
-    { time: '09:00 AM', patient: 'David Miller', doctor: 'Dr. James Wilson', type: 'Check-up', status: 'Confirmed' },
-  ];
+  const fetchDashboardData = async () => {
+    if (!isAuthenticated) return;
+    setLoading(true);
+    setError(null);
+
+    try {
+      const [patientsRes, appointmentsRes, inventoryRes] = await Promise.all([
+        axiosInstance.get('/patients'),
+        axiosInstance.get('/appointments'),
+        axiosInstance.get('/inventory'),
+      ]);
+
+      const patientsData = patientsRes.data || [];
+      const appointmentsData = appointmentsRes.data || [];
+      const inventoryData = inventoryRes.data || [];
+
+      setPatients(patientsData);
+      setAppointments(appointmentsData);
+      setInventory(inventoryData);
+
+      setStats({
+        totalPatients: patientsData.length,
+        availableBeds: {
+          total: 50,
+          occupied: patientsData.filter((p) => p.status === 'Admitted').length,
+        },
+        appointments: appointmentsData.length,
+        staffOnDuty: {
+          doctors: 5,
+          nurses: 10,
+        },
+      });
+    } catch (err) {
+      const errorMessage = `Failed to load dashboard data: ${err.message}`;
+      setError(errorMessage);
+      console.error('API fetch error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [isAuthenticated]);
+
+  const handleRefresh = () => {
+    fetchDashboardData();
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="container p-1 text-red-600 text-center text-sm">
+        Please log in to access the dashboard.
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="container p-1 text-center text-gray-600 text-sm">
+        Loading dashboard...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container p-1 text-red-600 bg-red-50 border border-red-200 rounded-lg text-center text-sm">
+        <p>{error}</p>
+        <button
+          className="mt-1 bg-blue-600 text-white px-2 py-1 rounded-lg hover:bg-blue-700 text-xs"
+          onClick={handleRefresh}
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <main className={`pt-16 ${sidebarOpen ? 'ml-64' : 'ml-0'} transition-all duration-300 ease-in-out min-h-screen`}>
-      <div className="container mx-auto px-6 py-8">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h2 className="text-2xl font-semibold">Dashboard</h2>
-            <p className="text-gray-500">Welcome back, Dr. Johnson. Here's what's happening today.</p>
+    <main
+      className={`pt-12 ${sidebarOpen ? 'sm:ml-48 ml-12' : 'ml-0'} transition-all duration-300 ease-in-out min-h-screen ${
+        darkMode ? 'bg-gray-900' : 'bg-gray-50'
+      } doctor-dashboard`}
+    >
+      <div className="container px-1 sm:px-2 py-2 sm:py-4">
+        {/* Header */}
+        <div className="header-container flex flex-col items-center mb-2 sm:mb-4">
+          <div className="text-center">
+            <h2
+              className={`text-base sm:text-lg md:text-xl font-bold ${
+                darkMode ? 'text-white' : 'text-gray-800'
+              }`}
+            >
+              Dashboard
+            </h2>
+            <p
+              className={`text-xs sm:text-sm ${
+                darkMode ? 'text-gray-300' : 'text-gray-600'
+              } mt-0.5`}
+            >
+              Welcome back, Doctor! Here's what's happening today.
+            </p>
           </div>
-          <div>
-            <p className="text-sm text-gray-500">
+          <div
+            className={`${
+              darkMode ? 'bg-gray-800' : 'bg-white'
+            } rounded-lg px-2 py-1 shadow-sm mt-2 sm:mt-0`}
+          >
+            <p
+              className={`text-xs ${
+                darkMode ? 'text-gray-300' : 'text-gray-600'
+              }`}
+            >
               {new Date().toLocaleDateString('en-US', {
                 weekday: 'long',
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric',
               })}
+              ,{' '}
+              <span className="font-medium">
+                {new Date().toLocaleTimeString('en-US', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </span>{' '}
+              EAT
             </p>
           </div>
         </div>
-        <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-8 rounded-lg">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <i className="fas fa-exclamation-triangle text-red-500 text-xl"></i>
-            </div>
-            <div className="ml-3">
-              <p className="font-medium">Emergency Alert: Code Blue in Cardiology Department</p>
-              <p className="text-sm">Emergency response team has been dispatched. Please clear the area.</p>
-            </div>
-            <div className="ml-auto">
-              <button className="text-red-500 hover:text-red-700 cursor-pointer !rounded-button whitespace-nowrap">
-                <i className="fas fa-times"></i>
-              </button>
-            </div>
-          </div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {stats.map((stat, index) => (
-            <StatsCard key={index} {...stat} />
-          ))}
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-md p-6`}>
-            <PatientFlowChart />
-          </div>
-          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-md p-6`}>
-            <BedOccupancyChart />
-          </div>
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-md p-6`}>
-            <RevenueChart />
-          </div>
-          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-md p-6`}>
-            <DepartmentOccupancyChart />
-          </div>
-        </div>
-        <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-md p-6 mb-8`}>
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold">Recent Patients</h3>
-            <button className="text-blue-600 hover:text-blue-800 text-sm cursor-pointer !rounded-button whitespace-nowrap">
-              View All
+
+        {/* Stats */}
+        <div className="stats-container space-y-2">
+          <div className="flex justify-between items-center w-full">
+            <h3
+              className={`text-sm sm:text-base font-semibold text-center ${
+                darkMode ? 'text-gray-200' : 'text-gray-800'
+              }`}
+            >
+              Overview
+            </h3>
+            <button
+              className="bg-blue-600 text-white px-2 py-1 rounded-lg hover:bg-blue-700 transition duration-200 text-xs"
+              onClick={handleRefresh}
+            >
+              Refresh
             </button>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className={`${darkMode ? 'bg-gray-700' : 'bg-gray-50'} border-b`}>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Doctor</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {patients.map((patient) => (
-                  <tr key={patient.id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="h-10 w-10 rounded-full overflow-hidden">
-                          <img src={patient.img} alt="Patient" className="h-full w-full object-cover object-top" />
-                        </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium">{patient.name}</div>
-                          <div className="text-sm text-gray-500">{patient.age}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">{patient.id}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">{patient.department}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">{patient.doctor}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${patient.status === 'Active' ? 'bg-green-100 text-green-800' : patient.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}`}>
-                        {patient.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <button className="text-blue-600 hover:text-blue-900 mr-3 cursor-pointer !rounded-button whitespace-nowrap">
-                        <i className="fas fa-eye"></i>
-                      </button>
-                      <button className="text-blue-600 hover:text-blue-900 cursor-pointer !rounded-button whitespace-nowrap">
-                        <i className="fas fa-edit"></i>
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="stats-grid">
+            <div className="stat-grid-container">
+              <div className="stat-icon">
+                <i className="fas fa-user-injured"></i>
+              </div>
+              <div className="stat-title">Total Patients</div>
+              <div className="stat-value">{stats.totalPatients}</div>
+              <div className="stat-change">
+                {stats.totalPatients === 0 ? '0%' : '0%'} from last month
+              </div>
+            </div>
+            <div className="stat-grid-container">
+              <div className="stat-icon">
+                <i className="fas fa-procedures"></i>
+              </div>
+              <div className="stat-title">Available Beds</div>
+              <div className="stat-value">{`${stats.availableBeds.total - stats.availableBeds.occupied}/${stats.availableBeds.total}`}</div>
+              <div className="stat-change">
+                {stats.availableBeds.occupied === 0 ? '0%' : '0%'} from last week
+              </div>
+            </div>
+            <div className="stat-grid-container">
+              <div className="stat-icon">
+                <i className="fas fa-calendar-check"></i>
+              </div>
+              <div className="stat-title">Appointments</div>
+              <div className="stat-value">{stats.appointments}</div>
+              <div className="stat-change">
+                {stats.appointments === 0 ? '0%' : '0%'} from yesterday
+              </div>
+            </div>
+            <div className="stat-grid-container">
+              <div className="stat-icon">
+                <i className="fas fa-user-md"></i>
+              </div>
+              <div className="stat-title">Staff On Duty</div>
+              <div className="stat-value">{`${stats.staffOnDuty.doctors} doctors, ${stats.staffOnDuty.nurses} nurses`}</div>
+              <div className="stat-change"></div>
+            </div>
           </div>
         </div>
-        {/* Appointments table omitted for brevity */}
+
+        {/* Charts */}
+        <div className="charts-block">
+          <div className={`card ${darkMode ? 'dark' : ''}`}>
+            <h3
+              className={`text-sm sm:text-base font-semibold mb-2 text-center ${
+                darkMode ? 'text-gray-200' : 'text-gray-800'
+              }`}
+            >
+              Patient Flow
+            </h3>
+            <div className="chart-container">
+              <PatientFlowChart data={patients} />
+            </div>
+          </div>
+          <div className={`card ${darkMode ? 'dark' : ''}`}>
+            <h3
+              className={`text-sm sm:text-base font-semibold mb-2 text-center ${
+                darkMode ? 'text-gray-200' : 'text-gray-800'
+              }`}
+            >
+              Revenue Analysis
+            </h3>
+            <div className="chart-container">
+              <RevenueChart />
+            </div>
+          </div>
+          <div className={`card ${darkMode ? 'dark' : ''}`}>
+            <h3
+              className={`text-sm sm:text-base font-semibold mb-2 text-center ${
+                darkMode ? 'text-gray-200' : 'text-gray-800'
+              }`}
+            >
+              Bed Occupancy
+            </h3>
+            <div className="chart-container">
+              <BedOccupancyChart data={stats.availableBeds} />
+            </div>
+          </div>
+          <div className={`card ${darkMode ? 'dark' : ''}`}>
+            <h3
+              className={`text-sm sm:text-base font-semibold mb-2 text-center ${
+                darkMode ? 'text-gray-200' : 'text-gray-800'
+              }`}
+            >
+              Department Occupancy
+            </h3>
+            <div className="chart-container">
+              <DepartmentOccupancyChart data={patients} />
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Panels */}
+        <div className="panels-block">
+          <div className={`card ${darkMode ? 'dark' : ''}`}>
+            <ReportGenerator />
+          </div>
+          <div className={`card ${darkMode ? 'dark' : ''}`}>
+            <CommunicationPanel messages={messages} onSend={setMessages} />
+          </div>
+        </div>
       </div>
     </main>
   );

@@ -13,7 +13,7 @@ const DepartmentOccupancyChart = () => {
     datasets: [
       {
         label: 'Occupied Beds',
-        data: [45, 30, 35, 25, 20],
+        data: [5, 6, 7, 0, 0],
         backgroundColor: 'rgb(54, 162, 235)',
         borderColor: 'rgba(54, 162, 235, 0.2)',
         borderWidth: 1,
