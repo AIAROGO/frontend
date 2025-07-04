@@ -1,15 +1,15 @@
+// src/App.jsx
 import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { ThemeProvider } from './context/ThemeContext';
+import { ThemeProvider, useTheme } from './context/ThemeContext'; // Add useTheme
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Header from './components/layout/Header';
 import Sidebar from './components/layout/Sidebar';
 import ErrorBoundary from './components/ErrorBoundary';
-
-import './index.css';
 import StaffManager from './components/dashboard/StaffManager';
+import './index.css';
 
-// Lazy load pages
+// Lazy load pages (unchanged)
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Patients = lazy(() => import('./pages/Patients'));
 const Appointments = lazy(() => import('./pages/Appointments'));
@@ -25,18 +25,16 @@ const ForgotPassword = lazy(() => import('./pages/forgot-password'));
 const PatientForm = lazy(() => import('./components/patients/PatientForm'));
 const Laboratory = lazy(() => import('./components/Laboratory'));
 const Pharmacy = lazy(() => import('./components/Pharmacy'));
-const ManageDoctors = lazy(() => import('./components/ManageDoctors'));
+const DoctorDashboard = lazy(() => import('./components/DoctorsDashboard')); // Note the typo fix
+const BedRoomManagement = lazy(() => import('./components/BedRoomManagement'));
 const StaffDetails = lazy(() => import('./components/staff/StaffDetails'));
 const EmergencyCases = lazy(() => import('./components/EmergencyCases'));
-const BedRoomManagement = lazy(() => import('./components/BedRoomManagement'));
 const BillingPayments = lazy(() => import('./components/BillingPayments'));
-
-// ✅ Newly added pages (previously missing)
 const ManagePatients = lazy(() => import('./pages/ManagePatients'));
 
-// ✅ Protected route wrapper
-const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
+// ProtectedRoute (unchanged)
+const ProtectedRoute = ({ children, requiredRole = null }) => {
+  const { isAuthenticated, user, loading } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -47,37 +45,47 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  if (requiredRole && user?.role?.toLowerCase() !== requiredRole.toLowerCase()) {
+    return (
+      <div className="container p-4 text-red-600 bg-red-50 border border-red-200 rounded-lg">
+        <h2 className="text-xl font-semibold">Access Denied</h2>
+        <p>You do not have permission to access this page.</p>
+      </div>
+    );
+  }
+
   return <ErrorBoundary>{children}</ErrorBoundary>;
 };
 
-// ✅ Layout wrapper
-const Layout = ({ children }) => (
-  <>
-    <Header />
-    <div className="flex flex-1">
-      <Sidebar />
-      <main className="flex-1 ml-0 lg:ml-64 transition-all duration-300 p-4">
-        {children}
-      </main>
-    </div>
-  </>
-);
+// Layout component
+const Layout = ({ children }) => {
+  const { sidebarOpen } = useTheme(); // Now imported
+  return (
+    <>
+      <Header />
+      <div className="flex flex-1">
+        <Sidebar />
+        <main className={`flex-1 ${sidebarOpen ? 'lg:ml-64' : 'lg:ml-0'} transition-all duration-300 p-4`}>
+          {children}
+        </main>
+      </div>
+    </>
+  );
+};
 
 const App = () => {
   return (
     <AuthProvider>
       <ThemeProvider>
-        <BrowserRouter>
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <div className="min-h-screen flex flex-col">
             <Suspense fallback={<div className="container p-4 text-center text-gray-600">Loading...</div>}>
               <Routes>
-                {/* Public routes */}
+                {/* Routes unchanged */}
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/patients/add" element={<AddPatient />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
-
-                {/* Dashboard */}
                 <Route
                   path="/"
                   element={
@@ -88,8 +96,6 @@ const App = () => {
                     </ProtectedRoute>
                   }
                 />
-
-                {/* Core routes */}
                 <Route path="/patients" element={<ProtectedRoute><Layout><Patients /></Layout></ProtectedRoute>} />
                 <Route path="/patients/new" element={<ProtectedRoute><Layout><PatientForm /></Layout></ProtectedRoute>} />
                 <Route path="/appointments" element={<ProtectedRoute><Layout><Appointments /></Layout></ProtectedRoute>} />
@@ -98,8 +104,6 @@ const App = () => {
                 <Route path="/billing" element={<ProtectedRoute><Layout><Billing /></Layout></ProtectedRoute>} />
                 <Route path="/reports" element={<ProtectedRoute><Layout><Reports /></Layout></ProtectedRoute>} />
                 <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
-
-                {/* ✅ Previously missing routes (corrected) */}
                 <Route
                   path="/manage-patients"
                   element={
@@ -112,14 +116,14 @@ const App = () => {
                 />
                 <Route
                   path="/patients/edit/:id"
-                   element={
-                      <ProtectedRoute>
-                        <Layout>
-                          <PatientForm />
-                         </Layout>
-                      </ProtectedRoute>
-                   }
-                 />
+                  element={
+                    <ProtectedRoute>
+                      <Layout>
+                        <PatientForm />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
                 <Route
                   path="/staff-management"
                   element={
@@ -140,14 +144,67 @@ const App = () => {
                     </ProtectedRoute>
                   }
                 />
-
-                {/* Extended routes */}
-                <Route path="/laboratory" element={<ProtectedRoute><Layout><Laboratory /></Layout></ProtectedRoute>} />
-                <Route path="/pharmacy" element={<ProtectedRoute><Layout><Pharmacy /></Layout></ProtectedRoute>} />
-                <Route path="/manage-doctors" element={<ProtectedRoute><Layout><ManageDoctors /></Layout></ProtectedRoute>} />
-                <Route path="/emergency-cases" element={<ProtectedRoute><Layout><EmergencyCases /></Layout></ProtectedRoute>} />
-                <Route path="/bed-room-management" element={<ProtectedRoute><Layout><BedRoomManagement /></Layout></ProtectedRoute>} />
-                <Route path="/staff-details/:id" element={<ProtectedRoute><Layout><StaffDetails /></Layout></ProtectedRoute>} />
+                <Route
+                  path="/laboratory"
+                  element={
+                    <ProtectedRoute>
+                      <Layout>
+                        <Laboratory />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/pharmacy"
+                  element={
+                    <ProtectedRoute>
+                      <Layout>
+                        <Pharmacy />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/doctor-dashboard"
+                  element={
+                    <ProtectedRoute requiredRole="doctor">
+                      <Layout>
+                        <DoctorDashboard />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/emergency-cases"
+                  element={
+                    <ProtectedRoute>
+                      <Layout>
+                        <EmergencyCases />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/bed-room-management"
+                  element={
+                    <ProtectedRoute>
+                      <Layout>
+                        <BedRoomManagement />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/staff-details/:id"
+                  element={
+                    <ProtectedRoute>
+                      <Layout>
+                        <StaffDetails />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route path="*" element={<div className="container p-4 text-red-600">404: Page Not Found</div>} />
               </Routes>
             </Suspense>
           </div>

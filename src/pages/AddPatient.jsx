@@ -61,64 +61,148 @@ const AddPatient = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--bg-color)]">
-      <div className="card p-8 w-full max-w-md">
+    <div className="form-container">
+      <div className="form-card">
         <h2 className="text-2xl font-semibold text-center mb-6">Add New Patient</h2>
 
-        {error && <div className="text-red-600 mb-4">{error}</div>}
+        {error && <div className="error">{error}</div>}
 
         <form onSubmit={handleSubmit}>
-          <label className="block mb-2">Full Name</label>
-          <input type="text" name="name" value={patient.name} onChange={handleChange} required />
+          <div className="form-group">
+            <label>Full Name</label>
+            <input 
+              type="text" 
+              name="name" 
+              value={patient.name} 
+              onChange={handleChange} 
+              required 
+            />
+          </div>
 
-          <label className="block mt-4 mb-2">Date of Birth</label>
-          <input type="date" name="date_of_birth" value={patient.date_of_birth} onChange={handleChange} required />
+          <div className="form-group">
+            <label>Date of Birth</label>
+            <input 
+              type="date" 
+              name="date_of_birth" 
+              value={patient.date_of_birth} 
+              onChange={handleChange} 
+              required 
+            />
+          </div>
 
-          <label className="block mt-4 mb-2">Gender</label>
-          <select name="gender" value={patient.gender} onChange={handleChange} required>
-            <option value="">Select gender</option>
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-            <option value="other">Other</option>
-          </select>
+          <div className="form-group">
+            <label>Gender</label>
+            <select 
+              name="gender" 
+              value={patient.gender} 
+              onChange={handleChange} 
+              required
+            >
+              <option value="">Select gender</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
 
-          <label className="block mt-4 mb-2">Country Code</label>
-          <select name="country_code" value={patient.country_code} onChange={handleChange} required>
-            <option value="+254">Kenya (+254)</option>
-            <option value="+1">USA (+1)</option>
-            <option value="+44">UK (+44)</option>
-            <option value="+91">India (+91)</option>
-            {/* Add more country codes as needed */}
-          </select>
+          <div className="form-group">
+            <label>Country Code</label>
+            <select 
+              name="country_code" 
+              value={patient.country_code} 
+              onChange={handleChange} 
+              required
+            >
+              <option value="+254">Kenya (+254)</option>
+              <option value="+1">USA (+1)</option>
+              <option value="+44">UK (+44)</option>
+              <option value="+91">India (+91)</option>
+            </select>
+          </div>
 
-          <label className="block mt-4 mb-2">Phone Number</label>
-          <input type="tel" name="phone" value={patient.phone} onChange={handleChange} required />
+          <div className="form-group">
+            <label>Phone Number</label>
+            <input 
+              type="tel" 
+              name="phone" 
+              value={patient.phone} 
+              onChange={handleChange} 
+              required 
+            />
+          </div>
 
-          <label className="block mt-4 mb-2">Department</label>
-          <input type="text" name="department" value={patient.department} onChange={handleChange} />
+          <div className="form-group">
+            <label>Department</label>
+            <input 
+              type="text" 
+              name="department" 
+              value={patient.department} 
+              onChange={handleChange} 
+            />
+          </div>
 
-          <label className="block mt-4 mb-2">Doctor</label>
-          <input type="text" name="doctor" value={patient.doctor} onChange={handleChange} />
+          <div className="form-group">
+            <label>Doctor</label>
+            <input 
+              type="text" 
+              name="doctor" 
+              value={patient.doctor} 
+              onChange={handleChange} 
+            />
+          </div>
 
-          <label className="block mt-4 mb-2">Status</label>
-          <select name="status" value={patient.status} onChange={handleChange}>
-            <option value="Active">Active</option>
-            <option value="Pending">Pending</option>
-            <option value="Inactive">Inactive</option>
-          </select>
+          <div className="form-group">
+            <label>Status</label>
+            <select 
+              name="status" 
+              value={patient.status} 
+              onChange={handleChange}
+            >
+              <option value="Active">Active</option>
+              <option value="Pending">Pending</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+          </div>
 
-          <label className="block mt-4 mb-2">Medical History</label>
-          <textarea name="medical_history" value={patient.medical_history} onChange={handleChange} rows="3"></textarea>
+          <div className="form-group">
+            <label>Medical History</label>
+            <textarea 
+              name="medical_history" 
+              value={patient.medical_history} 
+              onChange={handleChange} 
+              rows="3"
+            ></textarea>
+          </div>
 
-          <label className="block mt-4 mb-2">Profile Picture</label>
-          <input type="file" name="profilePic" accept="image/*" onChange={handleChange} />
-          {preview && <img src={preview} alt="Preview" className="w-24 h-24 rounded-full mt-2 object-cover" />}
+          <div className="form-group">
+            <label>Profile Picture</label>
+            <input 
+              type="file" 
+              name="profilePic" 
+              accept="image/*" 
+              onChange={handleChange} 
+            />
+            {preview && (
+              <div className="preview-image">
+                <img 
+                  src={preview} 
+                  alt="Preview" 
+                  className="w-24 h-24 rounded-full mt-2 object-cover" 
+                />
+              </div>
+            )}
+          </div>
 
-          <button type="submit" className="btn-primary mt-6 w-full">Add Patient</button>
+          <button type="submit" className="btn-primary mt-6 w-full">
+            Add Patient
+          </button>
         </form>
 
         <div className="text-center mt-4">
-          <button onClick={() => navigate('/patients')} className="text-blue-600 text-sm hover:underline">
+          <button 
+            onClick={() => navigate('/patients')} 
+            className="text-blue-600 text-sm hover:underline"
+          >
             Back to Patients
           </button>
         </div>

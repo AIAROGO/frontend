@@ -11,7 +11,6 @@ const Header = () => {
     messages,
   } = useTheme();
 
-  // Debugging render count
   useEffect(() => {
     console.log('Header rendered');
     return () => console.log('Header unmounted');
@@ -20,23 +19,29 @@ const Header = () => {
   return (
     <header>
       <div className="header-container">
-        <div className="flex items-center gap-1">
-          <i className="fas fa-hospital text-primary text-base sm:text-lg"></i>
-          <h1 className={`text-xs sm:text-sm md:text-base font-semibold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
-            MediCare Pro
-          </h1>
-        </div>
+      <div className="flex items-center gap-3 flex-row-reverse">
+  <i className="fas fa-hospital text-primary text-base sm:text-lg"></i>
+  <h1 className={`logo-title ${darkMode ? 'text-white' : 'text-gray-800'}`}>
+    MediCare Pro
+  </h1>
+</div>
+
+        {/* Right section: Search, Notifications, Theme Toggle, Profile */}
         <div className="header-actions">
-          <div className="relative hidden sm:block">
-            <input
-              type="text"
-              className="search-bar"
-              placeholder="Search..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            <i className="fas fa-search search-bar-icon"></i>
-          </div>
+        {/* Search bar */}
+        <div className="search-bar-wrapper">
+  <input
+    type="text"
+    className="search-bar"
+    placeholder="Search..."
+    value={searchQuery}
+    onChange={(e) => setSearchQuery(e.target.value)}
+  />
+  <i className="fas fa-search search-bar-icon right-icon"></i>
+</div>
+
+
+          {/* Notification button */}
           <div className="relative">
             <button className="notification-icon">
               <i className="fas fa-bell text-sm sm:text-base"></i>
@@ -45,6 +50,8 @@ const Header = () => {
               )}
             </button>
           </div>
+
+          {/* Message button */}
           <div className="relative">
             <button className="message-icon">
               <i className="fas fa-envelope text-sm sm:text-base"></i>
@@ -53,9 +60,13 @@ const Header = () => {
               )}
             </button>
           </div>
+
+          {/* Theme toggle */}
           <button className="theme-toggle" onClick={toggleDarkMode}>
             <i className={`fas ${darkMode ? 'fa-sun' : 'fa-moon'} text-sm sm:text-base`}></i>
           </button>
+
+          {/* Profile info */}
           <div className="profile-container">
             <div className="profile-image">
               <img

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import axiosInstance from '../../services/api/axiosInstance';
+import axiosInstance from '../services/api/axiosInstance';
 
 const BedRoomManagement = () => {
   const { user } = useAuth();

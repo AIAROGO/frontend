@@ -34,14 +34,14 @@ const Dashboard = () => {
 
     try {
       const [patientsRes, appointmentsRes, inventoryRes] = await Promise.all([
-        axiosInstance.get('/patients'),
-        axiosInstance.get('/appointments'),
-        axiosInstance.get('/inventory'),
+        axiosInstance.get('/api/patients'), // Added /api prefix
+        axiosInstance.get('/api/appointments'), // Added /api prefix
+        axiosInstance.get('/api/inventory').catch(() => ({ data: [] })), // Fallback for missing endpoint
       ]);
 
-      const patientsData = patientsRes.data || [];
-      const appointmentsData = appointmentsRes.data || [];
-      const inventoryData = inventoryRes.data || [];
+      const patientsData = Array.isArray(patientsRes.data) ? patientsRes.data : [];
+      const appointmentsData = Array.isArray(appointmentsRes.data) ? appointmentsRes.data : [];
+      const inventoryData = Array.isArray(inventoryRes.data) ? inventoryRes.data : [];
 
       setPatients(patientsData);
       setAppointments(appointmentsData);
@@ -60,9 +60,14 @@ const Dashboard = () => {
         },
       });
     } catch (err) {
-      const errorMessage = `Failed to load dashboard data: ${err.message}`;
+      const errorMessage = `Failed to load dashboard data: Request failed with status code ${err.response?.status} at ${err.config?.url || 'unknown endpoint'}`;
       setError(errorMessage);
-      console.error('API fetch error:', err);
+      console.error('API fetch error:', {
+        message: err.message,
+        status: err.response?.status,
+        url: err.config?.url,
+        response: err.response?.data,
+      });
     } finally {
       setLoading(false);
     }
