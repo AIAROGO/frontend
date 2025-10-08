@@ -1,29 +1,32 @@
+// StaffDetails.jsx
 import React from 'react';
 
 const StaffDetails = ({ staff }) => {
-  if (!staff) return null;
+  if (!staff) {
+    return <p className="text-gray-500">No staff details available.</p>;
+  }
 
   return (
-    <div>
-      <div className="mb-4">
-        <p className="text-sm font-medium">Name</p>
-        <p className="text-lg">{staff.name}</p>
+    <div className="space-y-3">
+      <div>
+        <p className="text-sm font-semibold">Name</p>
+        <p>{staff.name}</p>
       </div>
-      <div className="mb-4">
-        <p className="text-sm font-medium">ID</p>
-        <p className="text-lg">{staff.id}</p>
+      <div>
+        <p className="text-sm font-semibold">ID</p>
+        <p>{staff.id}</p>
       </div>
-      <div className="mb-4">
-        <p className="text-sm font-medium">Role</p>
-        <p className="text-lg">{staff.role}</p>
+      <div>
+        <p className="text-sm font-semibold">Role</p>
+        <p>{staff.role}</p>
       </div>
-      <div className="mb-4">
-        <p className="text-sm font-medium">Department</p>
-        <p className="text-lg">{staff.department}</p>
+      <div>
+        <p className="text-sm font-semibold">Department</p>
+        <p>{staff.department}</p>
       </div>
-      <div className="mb-4">
-        <p className="text-sm font-medium">Status</p>
-        <p className="text-lg">{staff.status}</p>
+      <div>
+        <p className="text-sm font-semibold">Status</p>
+        <p>{staff.status}</p>
       </div>
     </div>
   );

@@ -2,7 +2,8 @@ import axios from './axiosInstance';
 
 export const fetchStaff = async () => {
   const response = await axios.get('/staff');
-  return response.data;
+  // Ensure response.data is returned as an array
+  return Array.isArray(response.data) ? response.data : [];
 };
 
 export const addStaff = async (staff) => {

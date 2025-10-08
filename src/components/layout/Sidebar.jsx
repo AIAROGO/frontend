@@ -8,7 +8,7 @@ const Sidebar = () => {
   const [activeTab, setActiveTab] = useState('/');
   const sidebarRef = useRef(null);
 
-  // Debugging click handler
+  // Toggle when clicking hamburger (still works)
   const handleToggle = () => {
     console.log('Hamburger clicked, isSidebarOpen:', !isSidebarOpen);
     setIsSidebarOpen(!isSidebarOpen);
@@ -31,7 +31,31 @@ const Sidebar = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Menu items with icons
+  // 👇 New: Auto-open sidebar on hover
+  useEffect(() => {
+    const sidebar = sidebarRef.current;
+    if (!sidebar) return;
+
+    const handleMouseEnter = () => {
+      console.log('Hovered over sidebar — opening');
+      setIsSidebarOpen(true);
+    };
+
+    const handleMouseLeave = () => {
+      console.log('Mouse left sidebar — closing');
+      setIsSidebarOpen(false);
+    };
+
+    sidebar.addEventListener('mouseenter', handleMouseEnter);
+    sidebar.addEventListener('mouseleave', handleMouseLeave);
+
+    return () => {
+      sidebar.removeEventListener('mouseenter', handleMouseEnter);
+      sidebar.removeEventListener('mouseleave', handleMouseLeave);
+    };
+  }, []);
+
+  // Menu items
   const menuItems = [
     { to: '/', label: 'Dashboard', icon: 'fa-tachometer-alt' },
     { to: '/manage-patients', label: 'Manage Patients', icon: 'fa-users' },
@@ -62,8 +86,7 @@ const Sidebar = () => {
       {/* Sidebar */}
       <aside
         ref={sidebarRef}
-        className={`${isSidebarOpen ? 'open' : ''} ${darkMode ? 'dark' : ''}`}
-        onMouseLeave={() => isSidebarOpen && setIsSidebarOpen(false)}
+        className={`sidebar ${isSidebarOpen ? 'open' : ''} ${darkMode ? 'dark' : ''}`}
       >
         <nav className="mt-6">
           <ul>

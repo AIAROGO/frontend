@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
-import { getPatientById, addPatient } from '../../services/api/patientApi';
-import axiosInstance from '../../services/api/axiosInstance';
+import { useAuth } from '../../context/AuthContext';
+import axios from 'axios';
 
 const countries = [
   { name: 'Kenya', code: '+254' },
@@ -15,6 +15,8 @@ const PatientForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { darkMode } = useTheme();
+  const { isAuthenticated } = useAuth();
+  const isEditMode = !!id;
   const [formData, setFormData] = useState({
     name: '',
     date_of_birth: '',
@@ -24,30 +26,37 @@ const PatientForm = () => {
     department: '',
     doctor: '',
     status: 'Active',
+    medical_history: '',
     profilePic: null,
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState('');
+  const [preview, setPreview] = useState(null);
 
   useEffect(() => {
-    if (id) {
+    if (isEditMode) {
       const fetchPatient = async () => {
         try {
           setLoading(true);
-          const patient = await getPatientById(id);
-          console.log('Fetched patient:', patient);
+          const token = localStorage.getItem('token');
+          const response = await axios.get(`http://localhost:5000/api/patients/${id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          console.log('Fetched patient:', response.data);
           setFormData({
-            name: patient.name || '',
-            date_of_birth: patient.date_of_birth ? patient.date_of_birth.split('T')[0] : '',
-            gender: patient.gender || '',
-            country_code: patient.country_code || '+254',
-            phone: patient.phone || '',
-            department: patient.address || '', // Backend uses address
-            doctor: patient.doctor || '',
-            status: patient.status || 'Active',
+            name: response.data.name || '',
+            date_of_birth: response.data.date_of_birth ? response.data.date_of_birth.split('T')[0] : '',
+            gender: response.data.gender || '',
+            country_code: response.data.country_code || '+254',
+            phone: response.data.phone || '',
+            department: response.data.department || '',
+            doctor: response.data.doctor || '',
+            status: response.data.status || 'Active',
+            medical_history: response.data.medical_history || '',
             profilePic: null,
           });
+          setPreview(response.data.profilePic || null);
         } catch (err) {
           console.error('Error fetching patient:', err);
           setFetchError(
@@ -61,69 +70,92 @@ const PatientForm = () => {
       };
       fetchPatient();
     }
-  }, [id]);
+  }, [id, isEditMode]);
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
     if (name === 'profilePic') {
       setFormData((prev) => ({ ...prev, profilePic: files[0] || null }));
+      setPreview(files[0] ? URL.createObjectURL(files[0]) : null);
     } else if (name === 'phone') {
-      const numeric = value.replace(/\D/g, '');
-      setFormData((prev) => ({ ...prev, phone: numeric }));
-    } else if (name === 'name') {
-      setFormData((prev) => ({ ...prev, name: value.replace(/[^a-zA-Z\s]/g, '') }));
+      setFormData((prev) => ({ ...prev, phone: value.replace(/\D/g, '') }));
+    } else if (name === 'name' || name === 'department' || name === 'doctor' || name === 'medical_history') {
+      setFormData((prev) => ({ ...prev, [name]: value.replace(/[^a-zA-Z\s]/g, '') }));
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }));
     }
   };
 
-  const validateAge = (dob) => {
-    if (!dob) return false;
-    const age = new Date().getFullYear() - new Date(dob).getFullYear();
-    return age <= 130;
+  const validateForm = () => {
+    const newErrors = {};
+    if (!formData.name.trim()) newErrors.name = 'Name is required.';
+    if (formData.name.length < 2) newErrors.name = 'Name must be at least 2 characters.';
+    if (formData.name.length > 20) newErrors.name = 'Name must not exceed 20 characters.';
+    if (!formData.date_of_birth) newErrors.date_of_birth = 'Date of birth is required.';
+    if (!formData.gender) newErrors.gender = 'Gender is required.';
+    if (!formData.phone) newErrors.phone = 'Phone number is required.';
+    if (!formData.department.trim()) newErrors.department = 'Department is required.';
+    if (!formData.doctor.trim()) newErrors.doctor = 'Doctor is required.';
+    if (!formData.medical_history.trim()) newErrors.medical_history = 'Medical history is required.';
+    if (formData.phone.length < 7 || formData.phone.length > 15) {
+      newErrors.phone = 'Phone must be 7-15 digits long.';
+    }
+    const fullPhone = `${formData.country_code}${formData.phone}`;
+    if (!/^\+\d{1,4}\d{7,15}$/.test(fullPhone)) {
+      newErrors.phone = 'Invalid phone number format.';
+    }
+    const age = formData.date_of_birth
+      ? new Date().getFullYear() - new Date(formData.date_of_birth).getFullYear()
+      : null;
+    if (age === null || age > 130) newErrors.date_of_birth = 'Invalid age (over 130?).';
+    return newErrors;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const newErrors = {};
+    if (!isAuthenticated) {
+      setErrors({ submit: 'Please log in to save patient data.' });
+      return;
+    }
 
-    if (!formData.name.trim()) newErrors.name = 'Name is required.';
-    if (!validateAge(formData.date_of_birth)) newErrors.date_of_birth = 'Invalid age (over 130?)';
-    if (formData.phone.length < 7 || formData.phone.length > 15)
-      newErrors.phone = 'Phone must be 7-15 digits long.';
-
+    const newErrors = validateForm();
     setErrors(newErrors);
-    if (Object.keys(newErrors).length > 0) return;
+    if (Object.keys(newErrors).length > 0) {
+      console.log('Validation errors:', newErrors);
+      return;
+    }
 
     try {
       setLoading(true);
       const formDataToSend = new FormData();
-      formDataToSend.append('name', formData.name);
-      formDataToSend.append('date_of_birth', formData.date_of_birth);
-      formDataToSend.append('gender', formData.gender);
-      formDataToSend.append('country_code', formData.country_code);
-      formDataToSend.append('phone', formData.phone);
-      formDataToSend.append('address', formData.department); // Backend expects address
-      formDataToSend.append('doctor', formData.doctor);
-      formDataToSend.append('status', formData.status);
-      if (formData.profilePic) {
-        formDataToSend.append('profilePic', formData.profilePic);
-      }
+      Object.entries(formData).forEach(([key, value]) => {
+        if (key !== 'profilePic' && value) formDataToSend.append(key, value);
+      });
+      if (formData.profilePic) formDataToSend.append('profilePic', formData.profilePic);
 
-      if (id) {
-        await axiosInstance.put(`/api/patients/${id}`, formDataToSend, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
-        setErrors({ submit: 'Patient updated successfully' });
-      } else {
-        await addPatient(formDataToSend);
-        setErrors({ submit: 'Patient added successfully' });
-      }
-      navigate('/manage-patients');
+      console.log('Submitting form data:', Array.from(formDataToSend.entries()));
+      const token = localStorage.getItem('token');
+      const url = isEditMode ? `http://localhost:5000/api/patients/${id}` : 'http://localhost:5000/api/patients';
+      const method = isEditMode ? 'put' : 'post';
+      const response = await axios[method](url, formDataToSend, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      console.log(`${isEditMode ? 'Patient updated' : 'Patient added'}:`, response.data);
+      setErrors({ submit: isEditMode ? 'Patient updated successfully.' : 'Patient added successfully.' });
+      setTimeout(() => navigate('/patients'), 2000);
     } catch (err) {
       console.error('Error submitting form:', err);
       setErrors({
-        submit: err.response?.data?.message || 'Failed to save patient.',
+        submit:
+          err.response?.status === 401
+            ? 'Unauthorized: Please log in again.'
+            : err.response?.status === 400
+            ? err.response?.data?.message || 'Invalid input data.'
+            : err.response?.data?.message || 'Failed to save patient.',
       });
     } finally {
       setLoading(false);
@@ -139,11 +171,10 @@ const PatientForm = () => {
         onSubmit={handleSubmit}
         className={`form-card ${darkMode ? 'bg-gray-800 text-white' : 'bg-white'} rounded-lg shadow-md p-6`}
       >
-        <h2 className="text-xl font-semibold mb-4">{id ? 'Edit Patient' : 'Add Patient'}</h2>
+        <h2 className="text-xl font-semibold mb-4">{isEditMode ? 'Edit Patient' : 'Add Patient'}</h2>
 
-        {/* Name */}
-        <div className="mb-4">
-          <label htmlFor="name" className="block mb-1 text-sm font-medium">Name</label>
+        <div className="form-group">
+          <label htmlFor="name" className="block mb-1 text-sm font-medium">Full Name</label>
           <input
             type="text"
             id="name"
@@ -156,8 +187,7 @@ const PatientForm = () => {
           {errors.name && <p className="text-red-500 text-sm">{errors.name}</p>}
         </div>
 
-        {/* Date of Birth */}
-        <div className="mb-4">
+        <div className="form-group">
           <label htmlFor="date_of_birth" className="block mb-1 text-sm font-medium">Date of Birth</label>
           <input
             type="date"
@@ -171,8 +201,7 @@ const PatientForm = () => {
           {errors.date_of_birth && <p className="text-red-500 text-sm">{errors.date_of_birth}</p>}
         </div>
 
-        {/* Gender */}
-        <div className="mb-4">
+        <div className="form-group">
           <label htmlFor="gender" className="block mb-1 text-sm font-medium">Gender</label>
           <select
             id="gender"
@@ -187,10 +216,10 @@ const PatientForm = () => {
             <option value="female">Female</option>
             <option value="other">Other</option>
           </select>
+          {errors.gender && <p className="text-red-500 text-sm">{errors.gender}</p>}
         </div>
 
-        {/* Country Code + Phone */}
-        <div className="mb-4">
+        <div className="form-group">
           <label className="block mb-1 text-sm font-medium">Phone Number</label>
           <div className="flex space-x-2">
             <select
@@ -218,8 +247,7 @@ const PatientForm = () => {
           {errors.phone && <p className="text-red-500 text-sm">{errors.phone}</p>}
         </div>
 
-        {/* Department */}
-        <div className="mb-4">
+        <div className="form-group">
           <label htmlFor="department" className="block mb-1 text-sm font-medium">Department</label>
           <input
             type="text"
@@ -227,12 +255,13 @@ const PatientForm = () => {
             name="department"
             value={formData.department}
             onChange={handleChange}
+            required
             className="w-full p-2 border border-gray-300 rounded"
           />
+          {errors.department && <p className="text-red-500 text-sm">{errors.department}</p>}
         </div>
 
-        {/* Doctor */}
-        <div className="mb-4">
+        <div className="form-group">
           <label htmlFor="doctor" className="block mb-1 text-sm font-medium">Doctor</label>
           <input
             type="text"
@@ -240,12 +269,13 @@ const PatientForm = () => {
             name="doctor"
             value={formData.doctor}
             onChange={handleChange}
+            required
             className="w-full p-2 border border-gray-300 rounded"
           />
+          {errors.doctor && <p className="text-red-500 text-sm">{errors.doctor}</p>}
         </div>
 
-        {/* Status */}
-        <div className="mb-4">
+        <div className="form-group">
           <label htmlFor="status" className="block mb-1 text-sm font-medium">Status</label>
           <select
             id="status"
@@ -253,6 +283,7 @@ const PatientForm = () => {
             value={formData.status}
             onChange={handleChange}
             className="w-full p-2 border border-gray-300 rounded"
+            required
           >
             <option value="Active">Active</option>
             <option value="Pending">Pending</option>
@@ -260,8 +291,21 @@ const PatientForm = () => {
           </select>
         </div>
 
-        {/* Profile Picture */}
-        <div className="mb-4">
+        <div className="form-group">
+          <label htmlFor="medical_history" className="block mb-1 text-sm font-medium">Medical History</label>
+          <textarea
+            id="medical_history"
+            name="medical_history"
+            value={formData.medical_history}
+            onChange={handleChange}
+            rows="3"
+            required
+            className="w-full p-2 border border-gray-300 rounded"
+          />
+          {errors.medical_history && <p className="text-red-500 text-sm">{errors.medical_history}</p>}
+        </div>
+
+        <div className="form-group">
           <label htmlFor="profilePic" className="block mb-1 text-sm font-medium">Profile Picture</label>
           <input
             type="file"
@@ -271,26 +315,34 @@ const PatientForm = () => {
             onChange={handleChange}
             className="w-full p-2 border border-gray-300 rounded"
           />
+          {preview && (
+            <div className="preview-image">
+              <img src={preview} alt="Preview" className="w-24 h-24 rounded-full mt-2 object-cover" />
+            </div>
+          )}
         </div>
 
-        {/* Submit */}
         <div className="flex space-x-2">
           <button
             type="submit"
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+            className="btn-primary mt-6 w-full"
             disabled={loading}
           >
-            {loading ? 'Saving...' : id ? 'Update Patient' : 'Add Patient'}
+            {loading ? 'Saving...' : isEditMode ? 'Update Patient' : 'Add Patient'}
           </button>
           <button
             type="button"
-            onClick={() => navigate('/manage-patients')}
-            className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition"
+            onClick={() => navigate('/patients')}
+            className="text-blue-600 text-sm hover:underline mt-4 w-full text-center"
           >
             Cancel
           </button>
         </div>
-        {errors.submit && <p className="text-red-500 text-sm mt-2">{errors.submit}</p>}
+        {errors.submit && (
+          <div className={`alert mt-4 ${errors.submit.includes('success') ? 'alert-success' : 'alert-error'}`}>
+            {errors.submit}
+          </div>
+        )}
       </form>
     </div>
   );

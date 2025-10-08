@@ -1,26 +1,48 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import Modal from '../../components/common/Modal';
 import InventoryForm from './InventoryForm';
 import InventoryDetails from './InventoryDetails';
+import axiosInstance from '../../services/api/axiosInstance';
+ // 👈 Adjust path to your axiosInstance.js
 
 const InventoryList = () => {
   const { darkMode } = useTheme();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
+  const [inventory, setInventory] = useState([]); // 👈 State for dynamic data
+  const [loading, setLoading] = useState(true); // 👈 Loading state
+  const [error, setError] = useState(null); // 👈 Error state
 
-  // Mock data (replace with API call)
-  const inventory = [
-    {
-      id: 'I-20250616-001',
-      name: 'Syringe 5ml',
-      quantity: 500,
-      category: 'Medical Supplies',
-      status: 'In Stock',
-    },
-    // Add more items
-  ];
+  // 👈 Fetch data from API on component mount
+  useEffect(() => {
+    const fetchInventory = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await axiosInstance.get('/api/inventory');
+        setInventory(response.data); // 👈 Set fetched data
+      } catch (err) {
+        console.error('Failed to fetch inventory:', err);
+        setError('Failed to load inventory data. Please try again.');
+        // Fallback to mock if API fails (optional - remove in production)
+        setInventory([
+          {
+            id: 'I-20250616-001',
+            name: 'Syringe 5ml',
+            quantity: 500,
+            category: 'Medical Supplies',
+            status: 'In Stock',
+          },
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInventory();
+  }, []);
 
   const handleEdit = (item) => {
     setSelectedItem(item);
@@ -31,6 +53,29 @@ const InventoryList = () => {
     setSelectedItem(item);
     setIsDetailsModalOpen(true);
   };
+
+  // 👈 Simple loading/error UI
+  if (loading) {
+    return (
+      <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-md p-6 text-center`}>
+        <p className="text-gray-500">Loading inventory...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-md p-6 text-center`}>
+        <p className="text-red-500">{error}</p>
+        <button 
+          onClick={() => window.location.reload()} 
+          className="mt-2 bg-blue-600 text-white px-4 py-2 rounded"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-md p-6`}>

@@ -15,6 +15,7 @@ const Appointments = () => {
     time: '',
   });
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -49,6 +50,7 @@ const Appointments = () => {
       setAppointments([...appointments, response.data]);
       setNewAppointment({ patientName: '', doctorName: '', date: '', time: '' });
       setError('');
+      setSuccess('Appointment scheduled successfully.');
     } catch (err) {
       console.error('Error creating appointment:', err.response?.data || err.message);
       setError('Failed to create appointment.');
@@ -64,13 +66,27 @@ const Appointments = () => {
     }
   }, [error]);
 
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => {
+        setSuccess('');
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [success]);
+
   return (
     <main className={`pt-16 ${sidebarOpen ? 'ml-64' : 'ml-0'} transition-all duration-300 min-h-screen ${darkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'}`}>
       <div className="container mx-auto px-6 py-8">
         <h2 className="text-2xl font-semibold mb-6">Appointments</h2>
         {error && (
-          <div className="bg-red-100 text-red-700 p-4 rounded mb-4">
+          <div className="alert alert-error">
             {error}
+          </div>
+        )}
+        {success && (
+          <div className="alert alert-success">
+            {success}
           </div>
         )}
         <div className="card p-6 mb-6 bg-white rounded-lg shadow-md">
@@ -169,7 +185,6 @@ const Appointments = () => {
             </div>
           )}
         </div>
-      
       </div>
     </main>
   );

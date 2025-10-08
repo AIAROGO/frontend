@@ -1,3 +1,4 @@
+// StaffForm.jsx
 import React, { useState, useEffect } from 'react';
 import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
@@ -22,34 +23,54 @@ const StaffForm = ({ staff, onSubmit, onClose }) => {
   }, [staff]);
 
   const handleChange = (e) => {
-    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-
     const staffData = {
       ...formData,
-      id: staff?.id || `S-${Date.now()}`, // Assign ID if new staff
+      id: staff?.id || `S-${Date.now()}`,
     };
-
-    if (onSubmit) onSubmit(staffData); // Callback to parent component
-    onClose(); // Close modal
+    onSubmit(staffData);
+    onClose();
   };
 
   return (
     <form onSubmit={handleSubmit}>
       <div className="mb-4">
         <label className="block text-sm font-medium mb-1">Name</label>
-        <Input type="text" name="name" value={formData.name} onChange={handleChange} placeholder="Enter name" required />
+        <Input
+          type="text"
+          name="name"
+          value={formData.name}
+          onChange={handleChange}
+          placeholder="Enter name"
+          required
+        />
       </div>
       <div className="mb-4">
         <label className="block text-sm font-medium mb-1">Role</label>
-        <Input type="text" name="role" value={formData.role} onChange={handleChange} placeholder="Enter role" required />
+        <Input
+          type="text"
+          name="role"
+          value={formData.role}
+          onChange={handleChange}
+          placeholder="Enter role"
+          required
+        />
       </div>
       <div className="mb-4">
         <label className="block text-sm font-medium mb-1">Department</label>
-        <Input type="text" name="department" value={formData.department} onChange={handleChange} placeholder="Enter department" required />
+        <Input
+          type="text"
+          name="department"
+          value={formData.department}
+          onChange={handleChange}
+          placeholder="Enter department"
+          required
+        />
       </div>
       <div className="mb-4">
         <label className="block text-sm font-medium mb-1">Status</label>
@@ -57,7 +78,7 @@ const StaffForm = ({ staff, onSubmit, onClose }) => {
           name="status"
           value={formData.status}
           onChange={handleChange}
-          className="w-full py-2 px-4 rounded-lg border bg-gray-100 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full py-2 px-3 border rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="Active">Active</option>
           <option value="Inactive">Inactive</option>
